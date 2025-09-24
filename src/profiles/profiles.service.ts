@@ -10,6 +10,7 @@ import { CreateProfileDto } from './dto/create-profile.dto';
 import { getZodiacSign, getHoroscope } from 'src/common/utils/horoscope.util';
 import { ProfileResponse } from './dto/profile-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import cloudinary from 'src/common/utils/cloudinary';
 
 @Injectable()
 export class ProfileService {
@@ -59,8 +60,9 @@ export class ProfileService {
 
   async getProfileByUserId(userId: string): Promise<ProfileResponse> {
     const profile = await this.profileModel.findOne({ userId }).exec();
-    if (!profile)
+    if (!profile) {
       throw new NotFoundException(`profile not found for user ${userId}`);
+    }
     return {
       message: 'Profile retrieved successfully',
       data: {
@@ -79,10 +81,25 @@ export class ProfileService {
   async updateProfile(
     userId: string,
     dto: UpdateProfileDto,
+    imageUrl?: string,
+    publicId?: string,
   ): Promise<ProfileResponse> {
     const profile = await this.profileModel.findOne({ userId }).exec();
-    if (!profile) throw new NotFoundException(' Profile not found ');
+    if (!profile) {
+      await cloudinary.uploader.destroy(publicId || ''); //delete uploaded image if profile not found
+      throw new NotFoundException(`profile not found for user ${userId}`);
+    }
 
+    //if user upload new image
+    if (imageUrl) {
+      //delete old image from cloudinary
+      if (profile.imagePublicId) {
+        await cloudinary.uploader.destroy(profile.imagePublicId);
+      }
+      //update new image
+      profile.image = imageUrl;
+      profile.imagePublicId = publicId ?? '';
+    }
     if (dto.displayName) profile.displayName = dto.displayName;
     if (dto.gender) profile.gender = dto.gender;
     if (dto.birthday) profile.birthday = dto.birthday;
