@@ -13,9 +13,8 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { ProfileService } from './profiles.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import path, { extname } from 'path';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CloudinaryStorageConfig } from 'src/common/utils/cloudinary';
 
 @Controller('api')
 export class ProfilesController {
@@ -25,21 +24,7 @@ export class ProfilesController {
   @UseGuards(JwtAuthGuard)
   @Post('createProfile')
   @UseInterceptors(
-    FileInterceptor('image', {
-      storage: diskStorage({
-        destination: path.join(__dirname, '..', '..', 'common', 'uploads'),
-        filename: function (req: Express.Request, file, callback) {
-          const user =
-            (req.user as { userId?: string } | undefined)?.userId ||
-            'anonymous';
-          const uniqueSuffix = `${user}-${Date.now()}`;
-          callback(
-            null,
-            file.fieldname + '_' + uniqueSuffix + extname(file.originalname),
-          );
-        },
-      }),
-    }),
+    FileInterceptor('image', { storage: CloudinaryStorageConfig }),
   )
   async create(
     @Req() req: { user: { userId: string } },
@@ -47,7 +32,8 @@ export class ProfilesController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     const userId = req.user.userId;
-    return this.profileService.create(userId, dto, file?.path || '');
+    const imageUrl = file?.path || '';
+    return this.profileService.create(userId, dto, imageUrl);
   }
 
   //Get data by user
