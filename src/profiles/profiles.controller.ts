@@ -7,6 +7,7 @@ import {
   Req,
   Body,
   Get,
+  Patch,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { ProfileService } from './profiles.service';
@@ -14,10 +15,13 @@ import { CreateProfileDto } from './dto/create-profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import path, { extname } from 'path';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('api')
 export class ProfilesController {
   constructor(private readonly profileService: ProfileService) {}
+
+  //create profile by user
   @UseGuards(JwtAuthGuard)
   @Post('createProfile')
   @UseInterceptors(
@@ -43,14 +47,25 @@ export class ProfilesController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     const userId = req.user.userId;
-    await this.profileService.create(userId, dto, file?.path || '');
-    return { message: 'Profile created successfully' };
+    return this.profileService.create(userId, dto, file?.path || '');
   }
 
+  //Get data by user
   @UseGuards(JwtAuthGuard)
   @Get('getProfile')
   async getProfile(@Req() req: { user: { userId: string } }) {
     const userId = req.user.userId;
     return this.profileService.getProfileByUserId(userId);
+  }
+
+  // update data by user
+  @UseGuards(JwtAuthGuard)
+  @Patch('updateProfile')
+  async updateProfile(
+    @Req() req: { user: { userId: string } },
+    @Body() dto: UpdateProfileDto,
+  ) {
+    const userId = req.user.userId;
+    return this.profileService.updateProfile(userId, dto);
   }
 }
