@@ -32,8 +32,9 @@ export class ProfilesController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     const userId = req.user.userId;
+    const publicId = file?.filename || '';
     const imageUrl = file?.path || '';
-    return this.profileService.create(userId, dto, imageUrl);
+    return this.profileService.create(userId, dto, imageUrl, publicId);
   }
 
   //Get data by user

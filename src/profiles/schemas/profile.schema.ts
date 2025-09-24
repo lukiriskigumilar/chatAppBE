@@ -10,6 +10,9 @@ export class Profile extends Document {
   image: string;
 
   @Prop()
+  imagePublicId: string;
+
+  @Prop()
   displayName: string;
 
   @Prop()

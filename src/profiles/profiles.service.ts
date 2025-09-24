@@ -16,7 +16,12 @@ export class ProfileService {
   constructor(
     @InjectModel(Profile.name) private profileModel: Model<Profile>,
   ) {}
-  async create(userId: string, dto: CreateProfileDto, imageUrl?: string) {
+  async create(
+    userId: string,
+    dto: CreateProfileDto,
+    imageUrl?: string,
+    publicId?: string,
+  ): Promise<ProfileResponse> {
     const existing = await this.profileModel.findOne({ userId });
     if (existing) {
       throw new BadRequestException('You already make the profile');
@@ -27,6 +32,7 @@ export class ProfileService {
     const profile = new this.profileModel({
       userId,
       image: imageUrl || null,
+      imagePublicId: publicId || null,
       displayName: dto.displayName,
       gender: dto.gender,
       birthday: dto.birthday,
