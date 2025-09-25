@@ -8,6 +8,10 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
+  image?: string;
+
+  @IsOptional()
+  @IsString()
   gender: string;
 
   @IsOptional()

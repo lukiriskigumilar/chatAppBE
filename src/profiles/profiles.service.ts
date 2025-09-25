@@ -11,6 +11,7 @@ import { getZodiacSign, getHoroscope } from 'src/common/utils/horoscope.util';
 import { ProfileResponse } from './dto/profile-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import cloudinary from 'src/common/utils/cloudinary';
+import { uploadToCloudinary } from 'src/common/utils/upload_stream';
 
 @Injectable()
 export class ProfileService {
@@ -20,8 +21,7 @@ export class ProfileService {
   async create(
     userId: string,
     dto: CreateProfileDto,
-    imageUrl?: string,
-    publicId?: string,
+    file?: Express.Multer.File,
   ): Promise<ProfileResponse> {
     const existing = await this.profileModel.findOne({ userId });
     if (existing) {
@@ -32,9 +32,9 @@ export class ProfileService {
     const horoscope = getHoroscope(zodiac);
     const profile = new this.profileModel({
       userId,
-      image: imageUrl || null,
-      imagePublicId: publicId || null,
       displayName: dto.displayName,
+      image: null,
+      imagePublicId: null,
       gender: dto.gender,
       birthday: dto.birthday,
       zodiac,
@@ -42,7 +42,20 @@ export class ProfileService {
       height: dto.height,
       weight: dto.weight,
     });
-    await profile.save();
+    const saveData = await profile.save();
+    if (file && saveData) {
+      try {
+        const result: any = await uploadToCloudinary(file);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        profile.image = result.secure_url;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        profile.imagePublicId = result.public_id;
+        await profile.save();
+      } catch (err) {
+        await this.profileModel.findByIdAndDelete(profile._id);
+        throw new BadRequestException(`image update Failed ${err}`);
+      }
+    }
     return {
       message: 'profile created successfully',
       data: {
@@ -81,24 +94,28 @@ export class ProfileService {
   async updateProfile(
     userId: string,
     dto: UpdateProfileDto,
-    imageUrl?: string,
-    publicId?: string,
+    file: Express.Multer.File,
   ): Promise<ProfileResponse> {
     const profile = await this.profileModel.findOne({ userId }).exec();
     if (!profile) {
-      await cloudinary.uploader.destroy(publicId || ''); //delete uploaded image if profile not found
       throw new NotFoundException(`profile not found for user ${userId}`);
     }
 
     //if user upload new image
-    if (imageUrl) {
+    if (file) {
       //delete old image from cloudinary
       if (profile.imagePublicId) {
         await cloudinary.uploader.destroy(profile.imagePublicId);
       }
-      //update new image
-      profile.image = imageUrl;
-      profile.imagePublicId = publicId ?? '';
+      try {
+        const resultUpdateImage: any = await uploadToCloudinary(file);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        profile.image = resultUpdateImage.secure_url;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        profile.imagePublicId = resultUpdateImage.public_id;
+      } catch (err) {
+        throw new BadRequestException(`image update fail ${err}`);
+      }
     }
     if (dto.displayName) profile.displayName = dto.displayName;
     if (dto.gender) profile.gender = dto.gender;
