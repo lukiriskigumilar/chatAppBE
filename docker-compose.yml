@@ -15,6 +15,13 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     command: npm run start:dev
+  rabitmq:
+    image: rabbitmq:3-management
+    container_name: nest-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
   mongo:
     image: mongo:8
     container_name: nest-mongo
