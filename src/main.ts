@@ -2,13 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as dotenv from 'dotenv';
 
 async function bootstrap() {
   dotenv.config();
   const app = await NestFactory.create(AppModule);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   app.use(cookieParser());
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, //delete property that is not in dto
