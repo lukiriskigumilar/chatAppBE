@@ -3,10 +3,9 @@ import {
   ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UserService } from 'src/users/users.service';
+import { UserService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
-import { customAlphabet } from 'nanoid';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -30,15 +29,12 @@ export class AuthService {
     if (existingUsername) {
       throw new ConflictException('Username already used');
     }
-    const nanoid = customAlphabet('0123456789', 5);
-    const id = 'Usr' + nanoid();
 
     //hash password
     const hashedPassword = await bcrypt.hash(_registerDto.password, 10);
 
     //save user
     const user = await this.userService.create({
-      id: id,
       email: _registerDto.email,
       username: _registerDto.username,
       password: hashedPassword,
